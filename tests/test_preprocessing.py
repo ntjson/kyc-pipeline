@@ -179,8 +179,88 @@ class TestAdjustBrightness:
 # =============================================================================
 
 class TestCropRegion:
-    def test_crop_region(self) -> None:
-        pass
+
+    @pytest.fixture()
+    def numbered_grid(self) -> np.ndarray:
+        return np.arange(100, dtype=np.uint8).reshape(10, 10)
+
+    # ---- shape & d-type ----
+
+    def test_output_shape_matches_request_size(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        cropped = crop_region(numbered_grid, x=2, y=3, w=5, h=4)
+        assert cropped.shape == (4, 5)
+
+    def test_output_shape_rgb(self) -> None:
+        img = _solid_rgb(20, 30, (1, 2, 3))
+        cropped = crop_region(img, x=5, y=5, w=10, h=8)
+        assert cropped.shape == (8, 10, 3)
+
+    def test_output_dtype_preserved(self, numbered_grid: np.ndarray) -> None:
+        assert crop_region(numbered_grid, 0, 0, 5, 5).dtype == np.uint8
+
+    # ---- happy path ----
+
+    def test_crop_returns_correct_pixels(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        cropped = crop_region(numbered_grid, x=1, y=2, w=3, h=2)
+        # row 2, cols 1-3: [21, 22, 23]
+        # row 3, cols 1-3: [31, 32, 33]
+        expected = np.array([[21, 22, 23], [31, 32, 33]], dtype=np.uint8)
+        np.testing.assert_array_equal(cropped, expected)
+
+    def test_full_image_crop(self, numbered_grid: np.ndarray) -> None:
+        cropped = crop_region(numbered_grid, x=0, y=0, w=10, h=10)
+        np.testing.assert_array_equal(cropped, numbered_grid)
+
+    # ---- edge cases ----
+
+    def test_single_pixel_crop(self, numbered_grid: np.ndarray) -> None:
+        cropped = crop_region(numbered_grid, x=7, y=3, w=1, h=1)
+        assert cropped.shape == (1, 1)
+        assert cropped[0, 0] == 37  # row 3, col 7
+
+    def test_top_left_corner(self, numbered_grid: np.ndarray) -> None:
+        cropped = crop_region(numbered_grid, x=0, y=0, w=1, h=1)
+        assert cropped[0, 0] == 0
+
+    def test_bottom_right_corner(self, numbered_grid: np.ndarray) -> None:
+        cropped = crop_region(numbered_grid, x=9, y=9, w=1, h=1)
+        assert cropped[0, 0] == 99
+
+    # ---- out-of-bounds rejection ----
+
+    def test_raises_when_x_plus_w_exceeds_width(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        with pytest.raises(ValueError, match="exceeds"):
+            crop_region(numbered_grid, x=8, y=0, w=5, h=5)
+
+    def test_raises_when_y_plus_h_exceeds_height(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        with pytest.raises(ValueError, match="exceeds"):
+            crop_region(numbered_grid, x=0, y=8, w=5, h=5)
+
+    def test_raises_on_negative_x(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        with pytest.raises(ValueError, match="exceeds"):
+            crop_region(numbered_grid, x=-1, y=0, w=5, h=5)
+
+    def test_raises_on_negative_y(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        with pytest.raises(ValueError, match="exceeds"):
+            crop_region(numbered_grid, x=0, y=-1, w=5, h=5)
+
+    def test_raises_when_completely_outside(
+            self, numbered_grid: np.ndarray
+    ) -> None:
+        with pytest.raises(ValueError):
+            crop_region(numbered_grid, x=50, y=50, w=10, h=10)
 
 
 # =============================================================================
