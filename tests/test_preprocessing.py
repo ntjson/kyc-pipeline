@@ -268,8 +268,76 @@ class TestCropRegion:
 # =============================================================================
 
 class TestSimpleThreshold:
-    def temp(self):
-        pass
+
+    # ---- shape & d-type ----
+
+    def test_output_dtype_is_uint8(self) -> None:
+        gray = np.full((5, 5), 100, dtype=np.uint8)
+        assert simple_threshold(gray).dtype == np.uint8
+
+    def test_output_shape_matches_input(self) -> None:
+        gray = np.zeros((13, 17), dtype=np.uint8)
+        assert simple_threshold(gray).shape == (13, 17)
+
+    # ---- happy path ----
+
+    def test_values_above_thresh_become_white(self) -> None:
+        gray = np.full((3, 3), 200, dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        assert np.all(result == 255)
+
+    def test_values_below_thresh_become_black(self) -> None:
+        gray = np.full((3, 3), 50, dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        assert np.all(result == 0)
+
+    def test_value_equal_to_thresh_becomes_black(self) -> None:
+        gray = np.full((2, 2), 128, dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        assert np.all(result == 0)
+
+    def test_mixed_image_thresholds_correctly(self) -> None:
+        gray = np.array([[0, 128, 129], [255, 64, 200]], dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        expected = np.array([[0, 0, 255], [255, 0, 255]], dtype=np.uint8)
+        np.testing.assert_array_equal(result, expected)
+
+    # ---- output only contains 0 and 255 ----
+
+    def test_output_is_strictly_binary(self) -> None:
+        gray = _gradient_gray(10, 256)
+        result = simple_threshold(gray, thresh=100)
+        unique_values = set(np.unique(result).tolist())
+        assert unique_values <= {0, 255}
+
+    # ---- edge-case thresholds ----
+
+    def test_thresh_zero_makes_almost_everything_white(self) -> None:
+        gray = np.array([[0, 1, 255]], dtype=np.uint8)
+        result = simple_threshold(gray, thresh=0)
+        np.testing.assert_array_equal(result, [[0, 255, 255]])
+
+    def test_thresh_255_makes_everything_black(self) -> None:
+        gray = np.full((4, 4), 255, dtype=np.uint8)
+        result = simple_threshold(gray, thresh=255)
+        assert np.all(result == 0)
+
+    # ---- edge-case images ----
+
+    def test_all_black_image(self) -> None:
+        gray = np.zeros((5, 5), dtype=np.uint8)
+        assert np.all(simple_threshold(gray) == 0)
+
+    def test_all_white_image(self) -> None:
+        gray = np.full((5, 5), 255, dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        assert np.all(result == 255)
+
+    def test_single_pixel(self) -> None:
+        gray = np.array([[130]], dtype=np.uint8)
+        result = simple_threshold(gray, thresh=128)
+        assert result.shape == (1, 1)
+        assert result[0, 0] == 255
 
 
 # =============================================================================
