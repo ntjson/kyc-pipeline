@@ -36,4 +36,4 @@ def pixel_histogram(gray: np.ndarray) -> np.ndarray:
     """Return a 256-element array of per-intensity pixel counts."""
     if gray.dtype != np.uint8:
         raise ValueError(f"Expected uint8 grayscale, got {gray.dtype}")
-    return np.bincount(gray.ravel(), minlength=256)
+    return np.bincount(gray.ravel(), minlength=256) # np.ravel converts to 1D array

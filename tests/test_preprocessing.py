@@ -345,5 +345,84 @@ class TestSimpleThreshold:
 # =============================================================================
 
 class TestPixelHistogram:
-    def temp(self):
-        pass
+
+    # ---- shape & dtype of output ----
+
+    def test_output_length_is_256(self) -> None:
+        gray = np.zeros((5, 5), dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist.shape == (256,)
+
+    def test_output_length_is_256_even_for_single_value_image(self) -> None:
+        gray = np.full((3, 3), 42, dtype=np.uint8)
+        assert pixel_histogram(gray).shape == (256,)
+
+    # ---- counts sum of total pixels ----
+
+    def test_counts_sum_to_total_pixels_uniform(self) -> None:
+        gray = np.full((20, 30), 100, dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist.sum() == 20 * 30
+
+    def test_counts_sum_to_total_pixels_gradient(self) -> None:
+        gray = _gradient_gray(50, 256)
+        hist = pixel_histogram(gray)
+        assert hist.sum() == 50 * 256
+
+    def test_counts_sum_to_total_pixels_random(self) -> None:
+        rng = np.random.default_rng(seed=42)
+        gray = rng.integers(0, 256, size=(100, 100), dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist.sum() == 100 * 100
+
+    # ---- happy path values ----
+
+    def test_all_black_image_concentrated_at_zero(self) -> None:
+        gray = np.zeros((10, 10), dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist[0] == 100
+        assert np.all(hist[1:] == 0)
+
+    def test_all_white_image_concentrated_at_255(self) -> None:
+        gray = np.full((10, 10), 255, dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist[255] == 100
+        assert np.all(hist[:255] == 0)
+
+    def test_known_two_value_image(self) -> None:
+        gray = np.array(
+            [[50, 50, 50, 200, 200],
+             [50, 50, 50, 200, 200]],
+            dtype=np.uint8,
+        )
+        hist = pixel_histogram(gray)
+        assert hist[50] == 6
+        assert hist[200] == 4
+        assert hist.sum() == 10
+
+    # ---- single pixel ----
+
+    def test_single_pixel_image(self) -> None:
+        gray = np.array([[137]], dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert hist[137] == 1
+        assert hist.sum() == 1
+
+    # ---- bins with zero count exist ----
+
+    def test_missing_values_have_zero_count(self) -> None:
+        gray = np.array([[0, 255], [0, 255]], dtype=np.uint8)
+        hist = pixel_histogram(gray)
+        assert np.all(hist[1:255] == 0)
+
+    # ---- input validation ----
+
+    def test_rejects_float_input(self) -> None:
+        gray_float = np.zeros((5, 5), dtype=np.float32)
+        with pytest.raises(ValueError, match="uint8"):
+            pixel_histogram(gray_float)
+
+    def test_rejects_uint16_input(self) -> None:
+        gray16 = np.zeros((5, 5), dtype=np.uint16)
+        with pytest.raises(ValueError, match="uint8"):
+            pixel_histogram(gray16)
