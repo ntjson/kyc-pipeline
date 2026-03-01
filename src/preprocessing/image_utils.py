@@ -2,7 +2,7 @@ import numpy as np
 
 
 def to_grayscale(img: np.ndarray) -> np.ndarray:
-    """Convert RGB image to grayscale using ITU-R BT.601 luminance weights."""
+    """Convert RGB image to grayscale"""
     if img.ndim == 2:
         return img.astype(np.uint8)
     if img.ndim != 3 or img.shape[2] < 3:
@@ -18,7 +18,7 @@ def adjust_brightness(img: np.ndarray, factor: float) -> np.ndarray:
 
 
 def crop_region(img: np.ndarray, x: int, y: int, w: int, h: int) -> np.ndarray:
-    """Extract a rectangular ROI. Raises on out-of-bounds."""
+    """Extract a rectangular. Raises on out-of-bounds."""
     img_h, img_w = img.shape[:2]
     if x < 0 or y < 0 or x + w > img_w or y + h > img_h:
         raise ValueError(
@@ -36,4 +36,4 @@ def pixel_histogram(gray: np.ndarray) -> np.ndarray:
     """Return a 256-element array of per-intensity pixel counts."""
     if gray.dtype != np.uint8:
         raise ValueError(f"Expected uint8 grayscale, got {gray.dtype}")
-    return np.bincount(gray.ravel(), minlength=256) # np.ravel converts to 1D array
+    return np.bincount(gray.ravel(), minlength=256)  # np.ravel converts to 1D array
