@@ -187,7 +187,7 @@ class DocumentPreprocessor:
             hints.append("too bright")
 
         glare_ratio = float(np.mean(gray > 240))
-        if glare_ratio < self.GLARE_MAX_RATIO:
+        if glare_ratio > self.GLARE_MAX_RATIO:
             issues.append("glare")
             hints.append("glare")
 
